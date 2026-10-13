@@ -41,6 +41,13 @@ def _env_list(name: str, default: tuple[str, ...]) -> tuple[str, ...]:
     return tuple(item.strip() for item in raw.split(",") if item.strip())
 
 
+def _env_bool(name: str, default: bool) -> bool:
+    raw = os.environ.get(name)
+    if raw is None:
+        return default
+    return raw.strip().lower() in {"1", "true", "yes", "on"}
+
+
 BACKEND_DIR = Path(__file__).resolve().parent.parent
 DEFAULT_DB_PATH = BACKEND_DIR / "aquatrace.db"
 
@@ -63,6 +70,8 @@ class Settings:
     history_days: int = 21
     # Seed used *only* for the training history (kept separate from run seed).
     training_seed: int = 20260115
+    # Auto-start the simulator loop on boot (useful for hosted demos).
+    auto_start: bool = _env_bool("AQUATRACE_AUTOSTART", False)
 
     # --- Detection -------------------------------------------------------
     persistence_readings: int = 3

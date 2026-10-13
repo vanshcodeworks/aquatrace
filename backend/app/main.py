@@ -48,6 +48,8 @@ def create_app(train_on_startup: bool = True) -> FastAPI:
         thread = threading.Thread(target=sim.loop_forever, name="aquatrace-loop", daemon=True)
         thread.start()
         app.state.sim_thread = thread
+        if settings.auto_start:
+            sim.start()
         yield
         sim.status = "STOPPED"
 

@@ -14,3 +14,5 @@ services:
         value: 3.11.9
       - key: AQUATRACE_CORS_ORIGIN_REGEX
         value: https://[a-zA-Z0-9-]+\.vercel\.app
+      - key: AQUATRACE_AUTOSTART
+        value: "1"
