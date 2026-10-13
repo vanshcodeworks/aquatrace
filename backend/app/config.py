@@ -34,6 +34,13 @@ def _env_int(name: str, default: int) -> int:
         return default
 
 
+def _env_list(name: str, default: tuple[str, ...]) -> tuple[str, ...]:
+    raw = os.environ.get(name)
+    if not raw:
+        return default
+    return tuple(item.strip() for item in raw.split(",") if item.strip())
+
+
 BACKEND_DIR = Path(__file__).resolve().parent.parent
 DEFAULT_DB_PATH = BACKEND_DIR / "aquatrace.db"
 
@@ -78,9 +85,18 @@ class Settings:
     tank_refill_lph: float = 0.0  # 0 => no continuous inflow modelled
 
     # --- CORS ------------------------------------------------------------
-    cors_origins: tuple[str, ...] = (
-        "http://localhost:5173",
-        "http://127.0.0.1:5173",
+    # Explicit origins via AQUATRACE_CORS_ORIGINS (comma-separated), plus a
+    # regex that accepts any Vercel deployment (production and preview URLs).
+    cors_origins: tuple[str, ...] = _env_list(
+        "AQUATRACE_CORS_ORIGINS",
+        (
+            "http://localhost:5173",
+            "http://127.0.0.1:5173",
+        ),
+    )
+    cors_origin_regex: str = os.environ.get(
+        "AQUATRACE_CORS_ORIGIN_REGEX",
+        r"https://[a-zA-Z0-9-]+\.vercel\.app",
     )
 
     # --- Bounds ----------------------------------------------------------

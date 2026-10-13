@@ -1,0 +1,16 @@
+services:
+  - type: web
+    name: aquatrace-api
+    runtime: python
+    plan: free
+    region: oregon
+    rootDir: backend
+    buildCommand: pip install --upgrade pip && pip install -r requirements.txt
+    startCommand: uvicorn app.main:app --host 0.0.0.0 --port $PORT
+    healthCheckPath: /api/health
+    autoDeploy: true
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      - key: AQUATRACE_CORS_ORIGIN_REGEX
+        value: https://[a-zA-Z0-9-]+\.vercel\.app
