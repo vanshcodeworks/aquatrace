@@ -32,6 +32,11 @@ interface SimContextValue {
   step: () => Promise<void>;
   reset: (seed?: number) => Promise<void>;
   setSpeed: (speed: number) => Promise<void>;
+  setOccupancy: (payload: {
+    occupied_rooms?: number | null;
+    guests_per_room?: number | null;
+    auto?: boolean;
+  }) => Promise<void>;
   selectScenario: (scenario: string, nodeId?: string | null, intensity?: number) => Promise<void>;
   injectFault: (payload: Record<string, unknown>) => Promise<void>;
   removeFault: (payload: { fault_db_id?: number; node_id?: string }) => Promise<void>;
@@ -132,6 +137,7 @@ export function SimulationProvider({ children }: { children: React.ReactNode }) 
       step: () => runAction(() => api.step()),
       reset: (seed) => runAction(() => api.reset(seed !== undefined ? { seed } : {})),
       setSpeed: (speed) => runAction(() => api.setSpeed(speed)),
+      setOccupancy: (payload) => runAction(() => api.setOccupancy(payload)),
       selectScenario: (scenario, nodeId, intensity) =>
         runAction(() => api.selectScenario({ scenario, node_id: nodeId ?? null, intensity_lph: intensity })),
       injectFault: (payload) => runAction(() => api.injectFault(payload)),

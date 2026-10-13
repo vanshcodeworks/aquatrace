@@ -4,70 +4,63 @@ export default {
   theme: {
     extend: {
       colors: {
-        // Neutral instrument-panel palette. Cool, desaturated, low-chroma so
-        // data and alerts are the only things that carry colour.
-        app: "#0c0e11",
-        app2: "#0f1215",
-        panel: "#14171b",
-        elevated: "#1b1f24",
-        line: "#262b31",
-        "line-strong": "#333a42",
-        ink: "#d6dae0",
-        muted: "#868f99",
-        dim: "#5f6873",
-        // Single muted accent, plus semantic signal colours.
-        teal: "#5b8fb9",
-        cyan: "#6f9dc0",
-        healthy: "#5b9e77",
-        warning: "#c39a4a",
-        critical: "#c35d5d",
+        // Wirely iPad cool mist & porcelain palette (Image 2 & 4)
+        app: "#eef2f6", // Cool mist slate canvas
+        app2: "#ffffff", // Pure white for cards and panels
+        panel: "#ffffff", // Card white surface
+        elevated: "#e2e8f0", // Soft interactive fill
+        line: "#dbe3eb", // Subtle slate border line
+        "line-strong": "#cbd5e1", // Active borders
+        ink: "#1e293b", // Slate black primary text
+        muted: "#64748b", // Secondary slate text
+        dim: "#94a3b8", // Captions & subtle labels
+        // Wirely accent colors
+        teal: "#2a7de1", // Primary Wirely blue
+        cyan: "#38bdf8", // Clean sky blue
+        healthy: "#10b981", // Crisp emerald green
+        warning: "#f59e0b", // Warm amber
+        critical: "#ef4444", // Clean signal red
+        navy: "#3a4d62", // Wirely contrast card slate navy
       },
       fontFamily: {
         sans: [
+          '"Plus Jakarta Sans"',
+          "Inter",
           "Segoe UI Variable Text",
           "Segoe UI",
-          "ui-sans-serif",
           "system-ui",
           "-apple-system",
-          "Roboto",
-          "Helvetica Neue",
-          "Arial",
           "sans-serif",
         ],
         mono: [
+          "JetBrains Mono",
           "Cascadia Mono",
-          "Cascadia Code",
-          "Consolas",
           "ui-monospace",
-          "SFMono-Regular",
-          "Menlo",
           "monospace",
         ],
       },
-      // Tight radii. Controls and panels read as flat surfaces, not "cards".
       borderRadius: {
         none: "0px",
-        sm: "2px",
-        DEFAULT: "3px",
-        md: "3px",
-        lg: "4px",
-        xl: "4px",
-        "2xl": "4px",
-        "3xl": "4px",
+        sm: "8px",
+        DEFAULT: "12px",
+        md: "14px",
+        lg: "18px",
+        xl: "22px",
+        "2xl": "28px",
+        "3xl": "36px",
         full: "9999px",
       },
-      // No drop shadows on panels. Overlays may use a hairline instead.
       boxShadow: {
-        panel: "none",
+        card: "0 10px 30px -5px rgba(38, 61, 87, 0.05), 0 4px 12px -2px rgba(38, 61, 87, 0.03)",
+        float: "0 20px 45px -10px rgba(38, 61, 87, 0.08)",
+        panel: "0 1px 3px 0 rgba(38, 61, 87, 0.04)",
         none: "none",
       },
       letterSpacing: {
-        tighter: "-0.02em",
-        tight: "-0.01em",
+        tighter: "-0.03em",
+        tight: "-0.015em",
         normal: "0em",
-        wide: "0.01em",
-        wider: "0.02em",
-        widest: "0.03em",
+        wide: "0.015em",
       },
     },
   },

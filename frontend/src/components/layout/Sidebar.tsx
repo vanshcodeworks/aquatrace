@@ -1,19 +1,31 @@
 import { NavLink } from "react-router-dom";
+import { Droplets } from "lucide-react";
 import { NAV } from "../../lib/nav";
-import { useSimulation } from "../../store/SimulationContext";
 
 export function Sidebar() {
-  const { connected, state } = useSimulation();
   return (
-    <aside className="flex h-screen w-56 shrink-0 flex-col border-r border-line bg-app2">
-      <div className="flex h-12 items-center border-b border-line px-4">
-        <span className="text-[13px] font-semibold tracking-tight text-ink">AquaTrace</span>
-        <span className="ml-2 rounded-sm border border-line px-1 py-px font-mono text-[10px] text-dim">
-          v1.0
-        </span>
+    <aside className="flex h-screen w-60 shrink-0 flex-col border-r border-slate-200/80 bg-white">
+      {/* Brand Header */}
+      <div className="flex h-16 items-center gap-3 border-b border-slate-100 px-5">
+        <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-blue-600 text-white shadow-sm shadow-blue-500/30">
+          <Droplets size={18} />
+        </div>
+        <div>
+          <div className="flex items-center gap-1.5">
+            <span className="text-sm font-bold tracking-tight text-slate-900">AquaTrace</span>
+            <span className="rounded-full bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700">
+              v1.2
+            </span>
+          </div>
+          <p className="text-[11px] font-medium text-slate-400">Hillside Resort Twin</p>
+        </div>
       </div>
 
-      <nav className="flex-1 overflow-y-auto py-1.5">
+      {/* Nav Menu */}
+      <nav className="flex-1 overflow-y-auto p-3 space-y-1">
+        <div className="px-3 py-1.5 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+          Front Desk Console
+        </div>
         {NAV.map((item) => {
           const Icon = item.icon;
           return (
@@ -22,19 +34,21 @@ export function Sidebar() {
               to={item.to}
               end={item.to === "/"}
               className={({ isActive }) =>
-                `relative flex items-center gap-2.5 px-4 py-[7px] text-[13px] ${
+                `group flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-xs font-medium transition-all ${
                   isActive
-                    ? "bg-elevated text-ink"
-                    : "text-muted hover:bg-elevated/60 hover:text-ink"
+                    ? "bg-blue-50 text-blue-700 font-semibold shadow-xs"
+                    : "text-slate-600 hover:bg-slate-50 hover:text-slate-900"
                 }`
               }
             >
               {({ isActive }) => (
                 <>
-                  {isActive ? (
-                    <span className="absolute inset-y-0 left-0 w-0.5 bg-teal" />
-                  ) : null}
-                  <Icon size={15} className={isActive ? "text-teal" : "text-dim"} />
+                  <Icon
+                    size={17}
+                    className={`transition-colors ${
+                      isActive ? "text-blue-600" : "text-slate-400 group-hover:text-slate-600"
+                    }`}
+                  />
                   <span>{item.label}</span>
                 </>
               )}
@@ -42,18 +56,6 @@ export function Sidebar() {
           );
         })}
       </nav>
-
-      <div className="border-t border-line px-4 py-3">
-        <div className="flex items-center gap-2 text-[11px]">
-          <span
-            className={`inline-block h-2 w-2 rounded-sm ${connected ? "bg-healthy" : "bg-critical"}`}
-          />
-          <span className="text-muted">{connected ? "Connected" : "Backend offline"}</span>
-        </div>
-        <p className="mt-2 font-mono text-[10px] text-dim">
-          {state?.data_source ?? "SIMULATED"} source
-        </p>
-      </div>
     </aside>
   );
 }

@@ -19,6 +19,12 @@ class SpeedRequest(BaseModel):
     speed: float = Field(..., gt=0, le=1000)
 
 
+class OccupancyRequest(BaseModel):
+    occupied_rooms: Optional[int] = Field(default=None, ge=0, le=100000)
+    guests_per_room: Optional[float] = Field(default=None, gt=0, le=10)
+    auto: bool = False
+
+
 class ResetRequest(BaseModel):
     seed: Optional[int] = Field(default=None, ge=0, le=2**31 - 1)
     scenario: Optional[str] = None

@@ -34,6 +34,8 @@ export interface LatestTelemetry {
   interval_minutes: number;
   features: {
     occupancy_rooms?: number;
+    guests?: number;
+    total_rooms?: number;
     meals_served?: number;
     laundry_kg?: number;
     dow?: number;
@@ -67,6 +69,13 @@ export interface SimulationState {
   active_faults: ActiveFault[];
   tank_level_pct: number;
   demo_active: boolean;
+  occupancy?: {
+    total_rooms: number;
+    occupied_rooms: number;
+    guests: number;
+    guests_per_room: number;
+    overridden: boolean;
+  };
 }
 
 export interface Scenario {

@@ -1,14 +1,18 @@
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Ban,
+  BedDouble,
   FlaskConical,
   Info,
+  Layers,
   Pause,
   Play,
   RotateCcw,
   StepForward,
   Trash2,
+  Users,
   Wrench,
   Zap,
 } from "lucide-react";
@@ -29,7 +33,7 @@ const FAULT_TYPES = [
 ];
 
 export function SimulationLab() {
-  const { state, topology, scenarios, actionPending, start, pause, step, reset, setSpeed, selectScenario, injectFault, removeFault, runDemo, remediation } =
+  const { state, latest, topology, scenarios, actionPending, start, pause, step, reset, setSpeed, setOccupancy, selectScenario, injectFault, removeFault, runDemo, remediation } =
     useSimulation();
   const timeline = usePolling(() => api.timeline(), 4000);
 
@@ -43,6 +47,37 @@ export function SimulationLab() {
 
   const [faultType, setFaultType] = useState("pipe_leak");
   const [customIntensity, setCustomIntensity] = useState(50);
+
+  const [autoOccupancy, setAutoOccupancy] = useState(true);
+  const [occupiedRooms, setOccupiedRooms] = useState(48);
+  const [guestsPerRoom, setGuestsPerRoom] = useState(2);
+
+  const totalRooms = state?.occupancy?.total_rooms ?? 80;
+
+  // Keep the manual controls mirroring the automatic profile until the
+  // operator takes manual control.
+  useEffect(() => {
+    const o = state?.occupancy;
+    if (!o) return;
+    if (!o.overridden) {
+      setAutoOccupancy(true);
+      setOccupiedRooms(Math.round(o.occupied_rooms));
+      setGuestsPerRoom(o.guests_per_room);
+    } else {
+      setAutoOccupancy(false);
+    }
+  }, [state?.occupancy?.occupied_rooms, state?.occupancy?.overridden, state?.occupancy?.guests_per_room]);
+
+  function applyOccupancy() {
+    if (autoOccupancy) {
+      setOccupancy({ auto: true, guests_per_room: guestsPerRoom });
+    } else {
+      setOccupancy({ occupied_rooms: occupiedRooms, guests_per_room: guestsPerRoom });
+    }
+  }
+
+  const guests = state?.occupancy?.guests ?? occupiedRooms * guestsPerRoom;
+  const expectedIntakeLph = (latest?.nodes?.main_inlet?.expected ?? 0) * 4;
 
   const selectedScenario = scenarios.find((s) => s.id === scenario);
   const nodeOptions = useMemo(() => topology?.nodes ?? [], [topology]);
@@ -68,9 +103,17 @@ export function SimulationLab() {
             subtitle="Reproducible, scripted faults with a documented expectation"
             icon={<FlaskConical size={15} />}
             right={
-              <Button size="sm" variant="primary" onClick={runDemo} disabled={actionPending}>
-                Run guided demo
-              </Button>
+              <div className="flex items-center gap-2">
+                <Link to="/twin">
+                  <Button size="sm" variant="secondary">
+                    <Layers size={13} className="mr-1.5" />
+                    3D Digital Twin
+                  </Button>
+                </Link>
+                <Button size="sm" variant="primary" onClick={runDemo} disabled={actionPending}>
+                  Run guided demo
+                </Button>
+              </div>
             }
           />
           <div className="grid grid-cols-1 gap-3 p-4 md:grid-cols-2">
@@ -185,6 +228,126 @@ export function SimulationLab() {
               <p className="mt-1">
                 Scenario <span className="font-medium text-ink">{state?.scenario ?? "-"}</span>
               </p>
+            </div>
+          </div>
+        </Panel>
+      </div>
+
+      <div className="grid grid-cols-1 gap-4 xl:grid-cols-3">
+        <Panel className="xl:col-span-2">
+          <PanelHeader
+            title="Occupancy and demand drivers"
+            subtitle="Front-desk numbers feed the expected-use model directly"
+            icon={<Users size={15} />}
+            right={
+              <Badge tone={autoOccupancy ? "muted" : "teal"}>
+                {autoOccupancy ? "Automatic profile" : "Manual occupancy"}
+              </Badge>
+            }
+          />
+          <div className="space-y-4 p-4">
+            <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
+              <Field
+                label="Occupied rooms"
+                hint={`of ${totalRooms} total rooms`}
+              >
+                <div className="flex items-center gap-3">
+                  <input
+                    type="range"
+                    min={0}
+                    max={totalRooms}
+                    value={occupiedRooms}
+                    disabled={autoOccupancy}
+                    onChange={(e) => {
+                      setAutoOccupancy(false);
+                      setOccupiedRooms(Number(e.target.value));
+                    }}
+                    className="h-1.5 flex-1 cursor-pointer appearance-none rounded-full bg-slate-200 accent-blue-600 disabled:cursor-not-allowed disabled:opacity-50"
+                  />
+                  <Input
+                    type="number"
+                    min={0}
+                    max={totalRooms}
+                    value={occupiedRooms}
+                    disabled={autoOccupancy}
+                    onChange={(e) => {
+                      setAutoOccupancy(false);
+                      setOccupiedRooms(Number(e.target.value));
+                    }}
+                    className="w-20"
+                  />
+                </div>
+              </Field>
+              <Field label="Guests per occupied room" hint="Drives meals and laundry load">
+                <Input
+                  type="number"
+                  min={0.5}
+                  max={10}
+                  step={0.5}
+                  value={guestsPerRoom}
+                  onChange={(e) => setGuestsPerRoom(Number(e.target.value))}
+                />
+              </Field>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-2">
+              <Button variant="primary" onClick={applyOccupancy} disabled={actionPending} icon={<BedDouble size={14} />}>
+                Apply occupancy
+              </Button>
+              <Button
+                variant="secondary"
+                onClick={() => setOccupancy({ auto: true })}
+                disabled={actionPending}
+                icon={<RotateCcw size={14} />}
+              >
+                Use automatic profile
+              </Button>
+            </div>
+
+            <p className="flex items-start gap-1.5 rounded-lg border border-line/50 bg-app2 p-2.5 text-[11px] text-muted">
+              <Info size={12} className="mt-0.5 shrink-0" />
+              The expected-use model reads occupied rooms, guests, meals and laundry as exogenous
+              features. Manual values are applied from the next simulated interval, so expected flow
+              and detection bands move with the guest load.
+            </p>
+          </div>
+        </Panel>
+
+        <Panel>
+          <PanelHeader title="Live demand snapshot" icon={<Users size={15} />} />
+          <div className="space-y-3 p-4">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="rounded-xl border border-slate-200/80 bg-slate-50 p-3">
+                <p className="text-[11px] font-medium text-slate-400">Occupied rooms</p>
+                <p className="font-mono text-lg font-bold text-slate-900">
+                  {Math.round(state?.occupancy?.occupied_rooms ?? occupiedRooms)}
+                  <span className="ml-1 text-xs font-medium text-slate-400">/ {totalRooms}</span>
+                </p>
+              </div>
+              <div className="rounded-xl border border-slate-200/80 bg-slate-50 p-3">
+                <p className="text-[11px] font-medium text-slate-400">Guests on site</p>
+                <p className="font-mono text-lg font-bold text-slate-900">{Math.round(guests)}</p>
+              </div>
+            </div>
+            <div className="space-y-2.5 border-t border-slate-100 pt-3 text-xs">
+              <div className="flex justify-between">
+                <span className="text-slate-500">Model expected intake</span>
+                <span className="font-mono font-semibold text-slate-800">
+                  {expectedIntakeLph.toFixed(0)} L/h
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Guests per room</span>
+                <span className="font-mono text-slate-800">
+                  {(state?.occupancy?.guests_per_room ?? guestsPerRoom).toFixed(1)}
+                </span>
+              </div>
+              <div className="flex justify-between">
+                <span className="text-slate-500">Occupancy source</span>
+                <span className="font-medium text-slate-800">
+                  {state?.occupancy?.overridden ? "Manual" : "Automatic"}
+                </span>
+              </div>
             </div>
           </div>
         </Panel>

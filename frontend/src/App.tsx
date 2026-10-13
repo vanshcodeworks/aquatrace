@@ -4,6 +4,8 @@ import { Sidebar } from "./components/layout/Sidebar";
 import { Toaster } from "./components/ui/Toaster";
 import { OfflineBanner } from "./components/layout/OfflineBanner";
 import { Overview } from "./pages/Overview";
+import { Departments } from "./pages/Departments";
+import { DigitalTwinPage } from "./pages/DigitalTwinPage";
 import { LiveMonitor } from "./pages/LiveMonitor";
 import { WaterNetwork } from "./pages/WaterNetwork";
 import { AIIntelligence } from "./pages/AIIntelligence";
@@ -15,12 +17,12 @@ import { Settings } from "./pages/Settings";
 
 function Layout() {
   return (
-    <div className="flex h-screen w-full overflow-hidden bg-app text-ink">
+    <div className="flex h-screen w-full overflow-hidden bg-[#eef2f6] text-slate-800">
       <Sidebar />
-      <div className="flex min-w-0 flex-1 flex-col">
+      <div className="flex min-w-0 flex-1 flex-col bg-[#eef2f6]">
         <Header />
         <OfflineBanner />
-        <main className="flex-1 overflow-y-auto px-5 py-5">
+        <main className="flex-1 overflow-y-auto px-6 py-6 bg-[#eef2f6]">
           <Outlet />
         </main>
       </div>
@@ -34,6 +36,8 @@ export default function App() {
     <Routes>
       <Route element={<Layout />}>
         <Route index element={<Overview />} />
+        <Route path="departments" element={<Departments />} />
+        <Route path="twin" element={<DigitalTwinPage />} />
         <Route path="monitor" element={<LiveMonitor />} />
         <Route path="network" element={<WaterNetwork />} />
         <Route path="ai" element={<AIIntelligence />} />

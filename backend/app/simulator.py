@@ -153,6 +153,28 @@ class Simulator:
             self.speed = float(speed)
             self._sync_session()
 
+    def set_occupancy(
+        self,
+        occupied_rooms: Optional[int] = None,
+        guests_per_room: Optional[float] = None,
+        auto: bool = False,
+    ) -> dict:
+        with self.lock:
+            if auto:
+                self.feature_gen.clear_occupancy_override()
+            self.feature_gen.set_occupancy(
+                occupied_rooms=occupied_rooms, guests_per_room=guests_per_room
+            )
+            self._log(
+                "OCCUPANCY",
+                "Occupancy set to "
+                f"{self.feature_gen.current_occupancy():.0f} rooms "
+                f"({self.feature_gen.guests_per_room:.1f} guests/room)."
+                if not auto
+                else "Occupancy returned to the automatic seasonal profile.",
+            )
+            return self.state()
+
     def step(self) -> None:
         with self.lock:
             self._advance(persist=True)
@@ -459,6 +481,8 @@ class Simulator:
             "sim_time": self.sim_time.isoformat(),
             "features": {
                 "occupancy_rooms": round(features.occupancy_rooms, 1),
+                "guests": round(features.guests, 1),
+                "total_rooms": self.feature_gen.total_rooms,
                 "meals_served": round(features.meals_served, 1),
                 "laundry_kg": round(features.laundry_kg, 2),
                 "dow": features.dow,
@@ -618,6 +642,7 @@ class Simulator:
 
     def state(self) -> dict:
         with self.lock:
+            occ_rooms = self.feature_gen.current_occupancy()
             return {
                 "status": self.status,
                 "speed": self.speed,
@@ -630,6 +655,13 @@ class Simulator:
                 "active_faults": self.active_faults(),
                 "tank_level_pct": round(self.tank_level_pct, 2),
                 "demo_active": self.demo_active,
+                "occupancy": {
+                    "total_rooms": self.feature_gen.total_rooms,
+                    "occupied_rooms": round(occ_rooms, 1),
+                    "guests": round(occ_rooms * self.feature_gen.guests_per_room, 1),
+                    "guests_per_room": round(self.feature_gen.guests_per_room, 2),
+                    "overridden": self.feature_gen.occupancy_override is not None,
+                },
             }
 
     def timeline_events(self) -> List[dict]:

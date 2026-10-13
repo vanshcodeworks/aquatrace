@@ -10,10 +10,13 @@ import { StatusPill } from "../components/ui/StatusPill";
 import { ActualVsExpected } from "../components/charts/ActualVsExpected";
 
 export function LiveMonitor() {
-  const { latest, topology } = useSimulation();
+  const { state: simState, latest, topology } = useSimulation();
   const [params, setParams] = useSearchParams();
   const selected = params.get("node") ?? "main_inlet";
   const [autoRefresh, setAutoRefresh] = useState(true);
+
+  const tankPct = simState?.tank_level_pct ?? 82.4;
+  const tankLitres = Math.round((tankPct / 100) * 50000);
 
   const history = usePolling(
     () => api.history(selected, 96),
@@ -65,7 +68,13 @@ export function LiveMonitor() {
                       {def.node_type.replaceAll("_", " ")}
                     </p>
                   </div>
-                  <StatusPill state={reading.detector_state} size="sm" pulse={reading.detector_state === "CRITICAL"} />
+                  {def.id === "tank" ? (
+                    <span className="rounded-full bg-blue-50 px-2 py-0.5 text-[10px] font-semibold text-blue-700 border border-blue-200">
+                      {Math.round(tankPct)}% Full
+                    </span>
+                  ) : (
+                    <StatusPill state={reading.detector_state} size="sm" pulse={reading.detector_state === "CRITICAL"} />
+                  )}
                 </button>
               );
             })}
@@ -77,7 +86,7 @@ export function LiveMonitor() {
           <Panel>
             <PanelHeader
               title={node?.node_name ?? "Node"}
-              subtitle={node ? `Sensor ${node.sensor_state}` : "Awaiting telemetry"}
+              subtitle={selected === "tank" ? "Rooftop 50,000L Storage Reservoir" : (node ? `Sensor ${node.sensor_state}` : "Awaiting telemetry")}
               icon={<Activity size={15} />}
               right={
                 <div className="flex items-center gap-2">
@@ -94,22 +103,36 @@ export function LiveMonitor() {
               }
             />
             {node ? (
-              <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-4">
-                <ReadingStat label="Actual" value={node.actual !== null ? `${node.actual.toFixed(2)}` : "-"} unit="L/15min" tone="ink" />
-                <ReadingStat label="Expected" value={`${node.expected.toFixed(2)}`} unit="L/15min" tone="cyan" />
-                <ReadingStat
-                  label="Band"
-                  value={`${node.lower.toFixed(1)}-${node.upper.toFixed(1)}`}
-                  unit="L/15min"
-                  tone="muted"
-                />
-                <ReadingStat
-                  label="Excess"
-                  value={`${node.excess_lph.toFixed(1)}`}
-                  unit="L/h"
-                  tone={node.excess_lph > 0 ? "critical" : "healthy"}
-                />
-              </div>
+              selected === "tank" ? (
+                <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-4">
+                  <ReadingStat label="Storage Level" value={`${Math.round(tankPct)}%`} unit="Reserve Level" tone="cyan" />
+                  <ReadingStat label="Stored Volume" value={`${tankLitres.toLocaleString()}`} unit="Litres" tone="ink" />
+                  <ReadingStat label="Total Capacity" value="50,000" unit="Litres" tone="muted" />
+                  <ReadingStat
+                    label="Autonomy Buffer"
+                    value={`~${(tankLitres / Math.max(1, (latest?.nodes["main_inlet"]?.actual ?? 250) * 4)).toFixed(1)}`}
+                    unit="Hours remaining"
+                    tone="healthy"
+                  />
+                </div>
+              ) : (
+                <div className="grid grid-cols-2 gap-3 p-4 sm:grid-cols-4">
+                  <ReadingStat label="Actual" value={node.actual !== null ? `${node.actual.toFixed(2)}` : "-"} unit="L/15min" tone="ink" />
+                  <ReadingStat label="Expected" value={`${node.expected.toFixed(2)}`} unit="L/15min" tone="cyan" />
+                  <ReadingStat
+                    label="Band"
+                    value={`${node.lower.toFixed(1)}-${node.upper.toFixed(1)}`}
+                    unit="L/15min"
+                    tone="muted"
+                  />
+                  <ReadingStat
+                    label="Excess"
+                    value={`${node.excess_lph.toFixed(1)}`}
+                    unit="L/h"
+                    tone={node.excess_lph > 0 ? "critical" : "healthy"}
+                  />
+                </div>
+              )
             ) : (
               <div className="p-4">
                 <Skeleton className="h-16 w-full" />

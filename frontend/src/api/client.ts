@@ -64,6 +64,8 @@ export const api = {
   step: () => request<LatestTelemetry>("/api/simulation/step", { method: "POST" }),
   setSpeed: (speed: number) =>
     request<SimulationState>("/api/simulation/speed", { method: "POST", body: JSON.stringify({ speed }) }),
+  setOccupancy: (payload: { occupied_rooms?: number | null; guests_per_room?: number | null; auto?: boolean }) =>
+    request<SimulationState>("/api/simulation/occupancy", { method: "POST", body: JSON.stringify(payload) }),
   reset: (payload: { seed?: number; scenario?: string } = {}) =>
     request<SimulationState>("/api/simulation/reset", { method: "POST", body: JSON.stringify(payload) }),
   selectScenario: (payload: { scenario: string; node_id?: string | null; intensity_lph?: number }) =>

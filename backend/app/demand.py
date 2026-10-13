@@ -9,7 +9,7 @@ from __future__ import annotations
 
 import datetime as dt
 from dataclasses import dataclass, field
-from typing import Dict
+from typing import Dict, Optional
 
 import numpy as np
 
@@ -95,6 +95,28 @@ class FeatureGenerator:
             "floor_a1": 20, "floor_a2": 20, "floor_b1": 20, "floor_b2": 20
         }
         self._occupancy = total_rooms * 0.6
+        # When set, occupancy is pinned to this value instead of the seeded
+        # random walk, so operators can drive the expected-use model directly.
+        self.occupancy_override: Optional[int] = None
+
+    def set_occupancy(
+        self,
+        occupied_rooms: Optional[int] = None,
+        guests_per_room: Optional[float] = None,
+    ) -> None:
+        if occupied_rooms is not None:
+            self.occupancy_override = int(np.clip(occupied_rooms, 0, self.total_rooms))
+        if guests_per_room is not None:
+            self.guests_per_room = float(max(0.1, min(10.0, guests_per_room)))
+
+    def clear_occupancy_override(self) -> None:
+        self.occupancy_override = None
+
+    def current_occupancy(self) -> float:
+        """Occupancy for display without advancing the random walk."""
+        if self.occupancy_override is not None:
+            return float(self.occupancy_override)
+        return float(np.clip(round(self._occupancy), 0, self.total_rooms))
 
     def _advance_occupancy(self, dow: int) -> float:
         # weekend uplift + slow random walk for check-in / check-out drift
@@ -108,7 +130,11 @@ class FeatureGenerator:
     def features_at(self, sim_time: dt.datetime) -> OperationalFeatures:
         hour = sim_time.hour
         dow = sim_time.weekday()
-        occ = self._advance_occupancy(dow)
+        if self.occupancy_override is not None:
+            occ = float(self.occupancy_override)
+            self._occupancy = occ
+        else:
+            occ = self._advance_occupancy(dow)
         guests = occ * self.guests_per_room
 
         meals = guests * MEALS_PER_GUEST_DAY * float(MEAL_WEIGHT[hour]) / INTERVALS_PER_HOUR

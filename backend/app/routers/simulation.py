@@ -8,6 +8,7 @@ from ..faults import SCENARIOS, SCENARIO_BY_ID
 from ..runtime import get_simulator
 from ..schemas import (
     InjectFaultRequest,
+    OccupancyRequest,
     RemoveFaultRequest,
     ResetRequest,
     ScenarioRequest,
@@ -77,6 +78,16 @@ def step():
     sim = get_simulator()
     sim.step()
     return sim.latest()
+
+
+@router.post("/occupancy")
+def set_occupancy(req: OccupancyRequest):
+    sim = get_simulator()
+    return sim.set_occupancy(
+        occupied_rooms=req.occupied_rooms,
+        guests_per_room=req.guests_per_room,
+        auto=req.auto,
+    )
 
 
 @router.post("/reset")

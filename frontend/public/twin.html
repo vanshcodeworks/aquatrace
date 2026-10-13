@@ -1,0 +1,593 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Hill Hotel · 3D Digital Twin | AquaTrace</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg: #0b0f14;
+  --panel: rgba(16, 23, 34, 0.92);
+  --border: rgba(255, 255, 255, 0.09);
+  --ink: #e2e8f0;
+  --muted: #8b99a8;
+  --dim: #556272;
+  --teal: #5b8fb9;
+  --cyan: #38bdf8;
+  --green: #10b981;
+  --amber: #f59e0b;
+  --red: #ef4444;
+  --line: #243242;
+}
+.light-mode {
+  --bg: #edf2f7;
+  --panel: rgba(255, 255, 255, 0.94);
+  --border: #d4dde6;
+  --ink: #1e293b;
+  --muted: #64748b;
+  --dim: #94a3b8;
+  --teal: #3b82f6;
+  --cyan: #0284c7;
+  --line: #e2e8f0;
+}
+* { box-sizing: border-box; }
+html, body {
+  margin: 0; width: 100%; height: 100%; overflow: hidden;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  color: var(--ink); background: var(--bg); transition: background 0.3s;
+}
+#app { position: relative; width: 100%; height: 100%; }
+canvas { display: block; width: 100%; height: 100%; outline: none; cursor: grab; }
+canvas:active { cursor: grabbing; }
+
+/* Top Branding Bar */
+#topbar {
+  position: absolute; z-index: 10; left: 16px; top: 16px;
+  display: flex; align-items: center; gap: 10px; pointer-events: none;
+}
+.brand-box {
+  pointer-events: auto; background: var(--panel); border: 1px solid var(--border);
+  border-radius: 10px; padding: 9px 14px; backdrop-filter: blur(14px);
+  box-shadow: 0 8px 30px rgba(0,0,0,0.3); display: flex; align-items: center; gap: 10px;
+}
+.brand-dot { width: 9px; height: 9px; border-radius: 50%; background: var(--green); box-shadow: 0 0 10px var(--green); }
+.brand-title { font-size: 13px; font-weight: 700; letter-spacing: 0.02em; text-transform: uppercase; }
+.brand-subtitle { font-size: 10px; color: var(--muted); margin-top: 1px; }
+
+.status-pill {
+  pointer-events: auto; display: flex; align-items: center; gap: 7px;
+  padding: 8px 12px; background: var(--panel); border: 1px solid var(--border);
+  border-radius: 9999px; font-size: 11px; font-family: 'JetBrains Mono', monospace;
+  backdrop-filter: blur(12px); color: var(--muted);
+}
+
+/* Left Tools Overlay */
+#lefttools {
+  position: absolute; z-index: 10; left: 16px; top: 88px;
+  display: flex; flex-direction: column; gap: 8px; width: 180px; pointer-events: none;
+}
+.tool-card {
+  pointer-events: auto; background: var(--panel); border: 1px solid var(--border);
+  border-radius: 10px; padding: 10px; backdrop-filter: blur(14px);
+  box-shadow: 0 6px 24px rgba(0,0,0,0.25);
+}
+.tool-title { font-size: 10px; font-weight: 700; color: var(--dim); text-transform: uppercase; letter-spacing: 0.08em; margin-bottom: 7px; }
+.level-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; }
+.level-grid button.all { grid-column: span 2; }
+
+button {
+  font-family: inherit; font-size: 11px; font-weight: 500;
+  border: 1px solid var(--border); background: rgba(255,255,255,0.04);
+  color: var(--ink); border-radius: 6px; padding: 6px 9px; cursor: pointer;
+  transition: all 0.15s ease; text-align: left;
+}
+.light-mode button { background: rgba(0,0,0,0.03); }
+button:hover { background: rgba(255,255,255,0.1); border-color: var(--teal); }
+button.active { background: var(--teal); color: #fff; border-color: var(--teal); font-weight: 600; }
+button.danger { border-color: rgba(239, 68, 68, 0.4); color: #fca5a5; }
+button.danger:hover { background: rgba(239, 68, 68, 0.2); }
+button.leak-active { background: var(--red) !important; color: white !important; animation: pulseRed 1.6s infinite; }
+
+@keyframes pulseRed { 0% { opacity: 1; } 50% { opacity: 0.7; } 100% { opacity: 1; } }
+
+/* Range Slider */
+.slider-group { margin-top: 8px; }
+.slider-header { display: flex; justify-content: space-between; font-size: 10px; font-family: 'JetBrains Mono', monospace; color: var(--muted); margin-bottom: 5px; }
+input[type=range] { width: 100%; accent-color: var(--teal); height: 5px; background: rgba(255,255,255,0.1); border-radius: 4px; cursor: pointer; }
+
+/* Preset Views */
+.view-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; margin-top: 6px; }
+
+/* Bottom Action Bar */
+#bottombar {
+  position: absolute; z-index: 10; left: 16px; bottom: 16px;
+  display: flex; flex-wrap: wrap; align-items: center; gap: 8px; pointer-events: none;
+}
+.action-box {
+  pointer-events: auto; background: var(--panel); border: 1px solid var(--border);
+  border-radius: 10px; padding: 7px 10px; backdrop-filter: blur(14px);
+  display: flex; flex-wrap: wrap; gap: 6px; align-items: center;
+}
+
+/* Right Telemetry Panel */
+#panel {
+  position: absolute; z-index: 10; right: 16px; top: 16px; bottom: 16px;
+  width: 340px; max-width: calc(100% - 32px); background: var(--panel);
+  border: 1px solid var(--border); border-radius: 12px; backdrop-filter: blur(18px);
+  box-shadow: 0 12px 36px rgba(0,0,0,0.45); display: flex; flex-direction: column; overflow: hidden;
+}
+#panelhead { padding: 16px; border-bottom: 1px solid var(--border); }
+.eyebrow { font-size: 10px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.1em; color: var(--dim); }
+#nodeTitle { font-size: 16px; font-weight: 700; margin: 4px 0 2px; }
+#nodeSubtitle { font-size: 11px; color: var(--muted); }
+
+#nodeList { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 10px; }
+.nodechip {
+  padding: 4px 8px; font-size: 10px; font-family: 'JetBrains Mono', monospace;
+  background: rgba(255,255,255,0.04); border: 1px solid var(--border); border-radius: 5px; color: var(--muted);
+}
+.nodechip.selected { background: var(--teal); color: white; border-color: var(--teal); font-weight: 600; }
+.nodechip.leak { border-color: var(--red); color: var(--red); }
+.nodechip.warning { border-color: var(--amber); color: var(--amber); }
+
+/* Panel Tabs */
+.tab-row { display: flex; border-bottom: 1px solid var(--border); background: rgba(0,0,0,0.15); }
+.tab-btn {
+  flex: 1; padding: 9px; font-size: 11px; font-weight: 600; text-align: center;
+  border: none; border-bottom: 2px solid transparent; border-radius: 0; background: transparent; color: var(--muted);
+}
+.tab-btn.active { color: var(--cyan); border-bottom-color: var(--cyan); }
+
+.panel-content { flex: 1; overflow-y: auto; padding: 14px; display: flex; flex-direction: column; gap: 12px; }
+
+/* Stat Cards */
+.stat-row { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.stat-card {
+  padding: 10px; border: 1px solid var(--border); border-radius: 8px;
+  background: rgba(255,255,255,0.03);
+}
+.stat-card small { display: block; font-size: 9px; font-weight: 700; text-transform: uppercase; color: var(--muted); margin-bottom: 4px; }
+.stat-card strong { font-size: 19px; font-family: 'JetBrains Mono', monospace; font-weight: 700; }
+.stat-card em { font-style: normal; font-size: 10px; color: var(--muted); margin-left: 3px; }
+
+/* Quantile Band */
+.band-card {
+  padding: 11px; border: 1px solid var(--border); border-radius: 8px;
+  background: rgba(255,255,255,0.03);
+}
+.band-header { display: flex; justify-content: space-between; font-size: 11px; margin-bottom: 8px; }
+.band-track { position: relative; height: 6px; background: rgba(255,255,255,0.1); border-radius: 99px; margin: 10px 0; }
+.band-fill { position: absolute; left: 15%; width: 65%; height: 100%; background: rgba(56, 189, 248, 0.4); border-radius: 99px; }
+.band-marker {
+  position: absolute; top: 50%; width: 12px; height: 12px; border-radius: 50%;
+  border: 2px solid #fff; background: var(--teal); transform: translate(-50%, -50%); transition: left 0.2s;
+}
+.band-footer { font-size: 10px; color: var(--dim); display: flex; justify-content: space-between; }
+
+/* Cause & AI Diagnosis */
+.cause-card {
+  padding: 11px; border: 1px solid var(--border); border-radius: 8px;
+  background: rgba(255,255,255,0.03); font-size: 11px; line-height: 1.5; color: var(--muted);
+}
+.cause-title { font-weight: 700; font-size: 10px; text-transform: uppercase; letter-spacing: 0.08em; color: var(--ink); margin-bottom: 5px; }
+
+/* Legend */
+.legend-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; font-size: 10px; font-family: 'JetBrains Mono', monospace; color: var(--muted); padding-top: 6px; border-top: 1px solid var(--border); }
+.legend-item { display: flex; align-items: center; gap: 6px; }
+.legend-dot { width: 7px; height: 7px; border-radius: 50%; }
+
+/* Toast */
+#toast {
+  position: absolute; z-index: 50; top: 16px; left: 50%; transform: translate(-50%, -20px);
+  padding: 8px 16px; background: rgba(16, 23, 34, 0.95); border: 1px solid var(--cyan);
+  border-radius: 8px; color: #fff; font-size: 11px; font-weight: 600; pointer-events: none;
+  opacity: 0; transition: all 0.25s ease; backdrop-filter: blur(14px);
+}
+#toast.show { opacity: 1; transform: translate(-50%, 0); }
+
+/* Footer */
+.panel-footer {
+  padding: 10px 14px; border-top: 1px solid var(--border);
+  font-size: 10px; color: var(--dim); display: flex; justify-content: space-between;
+}
+</style>
+</head>
+<body>
+<div id="app">
+  <div id="topbar">
+    <div class="brand-box">
+      <div class="brand-dot" id="onlineDot"></div>
+      <div>
+        <div class="brand-title">Hill Hotel · 3D Digital Twin</div>
+        <div class="brand-subtitle">AquaTrace Water Monitoring Engine</div>
+      </div>
+    </div>
+    <div class="status-pill">
+      <span id="connStatus">INTELLIGENT REPLAY</span>
+      <span>·</span>
+      <span>3 LEVELS · 7 SENSORS</span>
+    </div>
+  </div>
+
+  <div id="lefttools">
+    <div class="tool-card">
+      <div class="tool-title">Floors & Standpipe</div>
+      <div class="level-grid" id="floorBtns">
+        <button class="all active" data-floor="all">All Levels</button>
+        <button data-floor="0">Ground</button>
+        <button data-floor="1">Floor 1</button>
+        <button data-floor="2">Floor 2</button>
+        <button data-floor="roof">Roof Tank</button>
+      </div>
+
+      <div class="slider-group">
+        <div class="slider-header">
+          <span>Explode</span>
+          <b id="explodeVal">0.0m</b>
+        </div>
+        <input type="range" id="explodeSlider" min="0" max="2.2" step="0.1" value="0">
+      </div>
+    </div>
+
+    <div class="tool-card">
+      <div class="tool-title">Camera & Mode</div>
+      <div class="view-grid">
+        <button id="viewIso">Iso 3D</button>
+        <button id="viewPlan">Top Plan</button>
+        <button id="viewElev">Front Elev</button>
+        <button id="viewPlant">Plant Room</button>
+      </div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:4px;margin-top:6px;">
+        <button id="xrayBtn">◉ X-Ray</button>
+        <button id="dayBtn">☾ Night/Day</button>
+      </div>
+    </div>
+  </div>
+
+  <div id="bottombar">
+    <div class="action-box">
+      <button class="danger" id="leakBtn">Simulate Leak · Wing B F2</button>
+      <button id="overflowBtn">Simulate Overflow · Tank</button>
+      <button id="laundryBtn">Half-Load Laundry</button>
+      <button id="resetBtn">Reset All</button>
+    </div>
+  </div>
+
+  <div id="toast"></div>
+
+  <div id="panel">
+    <div id="panelhead">
+      <div class="eyebrow">Spatial Telemetry · SCADA</div>
+      <h2 id="nodeTitle">S1 · Inlet meter</h2>
+      <p id="nodeSubtitle">Municipal inlet · plant room</p>
+      <div id="nodeList"></div>
+    </div>
+
+    <div class="tab-row">
+      <button class="tab-btn active" id="tabTelemetry">Live Readings</button>
+      <button class="tab-btn" id="tabDiagnosis">AI Diagnosis</button>
+    </div>
+
+    <div class="panel-content" id="telemetryView">
+      <div class="stat-row">
+        <div class="stat-card">
+          <small>LIVE FLOW</small>
+          <strong id="flowVal">180</strong><em>L/h</em>
+        </div>
+        <div class="stat-card">
+          <small>EST. WATER LOSS</small>
+          <strong id="lossVal">₹0</strong><em>/day</em>
+        </div>
+      </div>
+
+      <div class="band-card">
+        <div class="band-header">
+          <span>Expected Band (P10–P90)</span>
+          <strong id="bandText">120–220 L/h</strong>
+        </div>
+        <div class="band-track">
+          <div class="band-fill"></div>
+          <div class="band-marker" id="bandMarker"></div>
+        </div>
+        <div class="band-footer">
+          <span id="bandStatus">Within expected bounds</span>
+          <span>Tariff ₹150/kL</span>
+        </div>
+      </div>
+
+      <div class="cause-card">
+        <div class="cause-title">Live Node Insight</div>
+        <div id="causeText">Normal inlet demand. No anomaly detected.</div>
+      </div>
+
+      <div class="legend-grid">
+        <div class="legend-item"><span class="legend-dot" style="background:#2563eb"></span><span>Supply Pipe</span></div>
+        <div class="legend-item"><span class="legend-dot" style="background:#10b981"></span><span>Nominal Draw</span></div>
+        <div class="legend-item"><span class="legend-dot" style="background:#f59e0b"></span><span>Warning</span></div>
+        <div class="legend-item"><span class="legend-dot" style="background:#ef4444"></span><span>Active Leak Pulse</span></div>
+      </div>
+    </div>
+
+    <div class="panel-content" id="diagnosisView" style="display:none;">
+      <div class="cause-card" style="border-color:rgba(56,189,248,0.3)">
+        <div class="cause-title" style="color:#38bdf8">Deepest Abnormal Localisation</div>
+        <p id="diagnosisDetail">Hydraulic tree inspection evaluates leaf sensors first. If downstream Wing B F2 exceeds threshold, parent Wing B and inlet meters propagate alerts without raising duplicate incidents.</p>
+      </div>
+      <div class="cause-card">
+        <div class="cause-title">Standard Operating Procedure</div>
+        <p>1. Check isolation valve V-204.<br>2. Inspect ceiling manifold on Floor 2.<br>3. Verify cistern float shut-offs in rooms 201-204.</p>
+      </div>
+    </div>
+
+    <div class="panel-footer">
+      <span>AquaTrace Spatial Engine</span>
+      <span id="timeText">12:00:00</span>
+    </div>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+<script>
+(()=>{'use strict';
+const app = document.querySelector('#app');
+const scene = new THREE.Scene();
+scene.background = new THREE.Color('#0b0f14');
+scene.fog = new THREE.Fog('#0b0f14', 45, 110);
+
+const camera = new THREE.PerspectiveCamera(40, window.innerWidth / window.innerHeight, 0.1, 200);
+const renderer = new THREE.WebGLRenderer({ antialias: true });
+renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+renderer.setSize(window.innerWidth, window.innerHeight);
+renderer.shadowMap.enabled = true;
+renderer.shadowMap.type = THREE.PCFSoftShadowMap;
+app.prepend(renderer.domElement);
+
+const hemiLight = new THREE.HemisphereLight(0xdbeafe, 0x1e293b, 1.2);
+scene.add(hemiLight);
+const sun = new THREE.DirectionalLight(0xfffaed, 2.0);
+sun.position.set(-18, 32, 20);
+sun.castShadow = true;
+scene.add(sun);
+
+const targetPos = new THREE.Vector3(0, 5.1, 0);
+const curLookAt = new THREE.Vector3(0, 5.1, 0);
+const spherical = new THREE.Spherical(46, 0.95, 0.72);
+const targetSpherical = new THREE.Spherical(46, 0.95, 0.72);
+
+const pointer = { down: false, x: 0, y: 0, moved: 0, last: performance.now() };
+
+renderer.domElement.addEventListener('pointerdown', e => {
+  pointer.down = true; pointer.x = e.clientX; pointer.y = e.clientY; pointer.moved = 0; pointer.last = performance.now();
+  renderer.domElement.setPointerCapture(e.pointerId);
+});
+renderer.domElement.addEventListener('pointermove', e => {
+  if (!pointer.down) return;
+  const dx = e.clientX - pointer.x, dy = e.clientY - pointer.y;
+  pointer.moved += Math.abs(dx) + Math.abs(dy);
+  pointer.x = e.clientX; pointer.y = e.clientY;
+  targetSpherical.theta -= dx * 0.006;
+  targetSpherical.phi = Math.max(0.18, Math.min(1.48, targetSpherical.phi + dy * 0.006));
+  pointer.last = performance.now();
+});
+renderer.domElement.addEventListener('pointerup', e => {
+  pointer.down = false;
+  if (pointer.moved < 6) pick(e);
+});
+renderer.domElement.addEventListener('wheel', e => {
+  targetSpherical.radius = Math.max(14, Math.min(72, targetSpherical.radius + e.deltaY * 0.032));
+  pointer.last = performance.now();
+}, { passive: true });
+
+window.addEventListener('resize', () => {
+  camera.aspect = window.innerWidth / window.innerHeight;
+  camera.updateProjectionMatrix();
+  renderer.setSize(window.innerWidth, window.innerHeight);
+});
+
+// Materials
+const mat = (color, opts={}) => new THREE.MeshStandardMaterial({ color, roughness: 0.8, metalness: 0.05, ...opts });
+const M = {
+  wall: mat('#243242', { transparent: true, opacity: 0.12, depthWrite: false }),
+  wallDark: mat('#1c2735', { transparent: true, opacity: 0.1, depthWrite: false }),
+  floor: mat('#1a222e'), floorSide: mat('#131a24'), corridor: mat('#202c3b'),
+  bed: mat('#2b3b4f'), linen: mat('#3d4e63'), wood: mat('#3e3226'),
+  glass: mat('#38bdf8', { transparent: true, opacity: 0.38 }), metal: mat('#94a3b8', { metalness: 0.6 }),
+  pipe: mat('#2563eb', { roughness: 0.35, metalness: 0.3 }), water: mat('#38bdf8', { roughness: 0.2 }),
+  dark: mat('#101620'), green: mat('#10b981', { emissive: '#047857', emissiveIntensity: 0.6 }),
+  amber: mat('#f59e0b', { emissive: '#b45309', emissiveIntensity: 0.7 }),
+  red: mat('#ef4444', { emissive: '#b91c1c', emissiveIntensity: 0.9 }),
+  machine: mat('#242f3d'), concrete: mat('#171f2a'), white: mat('#334155')
+};
+
+const root = new THREE.Group(); scene.add(root);
+const floors = [new THREE.Group(), new THREE.Group(), new THREE.Group()];
+floors.forEach(g => root.add(g));
+const roofGroup = new THREE.Group(); root.add(roofGroup);
+const plantGroup = new THREE.Group(); root.add(plantGroup);
+const eqGroup = new THREE.Group(); floors[0].add(eqGroup);
+const allWalls = [];
+
+function box(parent, name, pos, size, material, isWall=false) {
+  const mesh = new THREE.Mesh(new THREE.BoxGeometry(...size), material);
+  mesh.name = name; mesh.position.set(...pos); parent.add(mesh);
+  if (isWall) {
+    allWalls.push(mesh);
+    const edge = new THREE.LineSegments(new THREE.EdgesGeometry(mesh.geometry), new THREE.LineBasicMaterial({ color: 0x475569, transparent: true, opacity: 0.35 }));
+    edge.position.copy(mesh.position); parent.add(edge); mesh.userData.edge = edge;
+  }
+  return mesh;
+}
+function cyl(parent, name, a, b, r, material=M.pipe) {
+  const A = new THREE.Vector3(...a), B = new THREE.Vector3(...b), d = B.clone().sub(A);
+  const mesh = new THREE.Mesh(new THREE.CylinderGeometry(r, r, d.length(), 10, 1), material);
+  mesh.position.copy(A.add(B).multiplyScalar(0.5));
+  mesh.quaternion.setFromUnitVectors(new THREE.Vector3(0, 1, 0), d.normalize()); parent.add(mesh); return mesh;
+}
+
+// Hotel Architecture
+box(root, 'Base', [0, -0.12, 0], [22, 0.24, 10], M.floorSide);
+for (let f = 0; f < 3; f++) {
+  const g = floors[f], y = f * 3;
+  box(g, 'Slab', [0, y, 0], [22, 0.16, 10], M.floor);
+  box(g, 'CorrA', [-6.5, y + 0.095, 0], [9, 0.03, 1.8], M.corridor);
+  box(g, 'CorrB', [6.5, y + 0.095, 0], [9, 0.03, 1.8], M.corridor);
+  box(g, 'WallEndA', [-10.93, y + 1.49, 0], [0.14, 2.82, 10], M.wall, true);
+  box(g, 'WallEndB', [10.93, y + 1.49, 0], [0.14, 2.82, 10], M.wall, true);
+  box(g, 'FaFrontA', [-6.5, y + 1.49, -4.93], [8.86, 2.82, 0.14], M.wall, true);
+  box(g, 'FaFrontB', [6.5, y + 1.49, -4.93], [8.86, 2.82, 0.14], M.wall, true);
+  box(g, 'FaRearA', [-6.5, y + 1.49, 4.93], [8.86, 2.82, 0.14], M.wall, true);
+  box(g, 'FaRearB', [6.5, y + 1.49, 4.93], [8.86, 2.82, 0.14], M.wall, true);
+}
+box(root, 'RoofSlab', [0, 9.06, 0], [22, 0.22, 10], M.floorSide);
+for (let i = 0; i < 2; i++) {
+  const x = i === 0 ? -2 : 2;
+  const t = new THREE.Mesh(new THREE.CylinderGeometry(0.86, 0.86, 1.55, 24), mat('#2a3b4c', { transparent: true, opacity: 0.85 }));
+  t.position.set(x, 10.98, 1.58); roofGroup.add(t);
+}
+
+// Nodes Definition
+const nodes = {}, segments = {}, particles = [];
+const nodeDefs = [
+  { id: 'S1', name: 'Inlet meter', subtitle: 'Municipal inlet · plant room', pos: [-3.5, -2.16, -0.3], flow: 180, lo: 120, hi: 220, cause: 'Normal inlet demand. No anomaly detected.' },
+  { id: 'S2', name: 'Tank level', subtitle: 'Ultrasonic level sensor · rooftop', pos: [-2, 11.98, 1.58], flow: 320, lo: 180, hi: 440, cause: 'Tank refill cycle behaving normally.' },
+  { id: 'S3', name: 'Wing A riser', subtitle: 'West wing · vertical distribution', pos: [-3.1, 4.4, -3.3], flow: 430, lo: 280, hi: 540, cause: 'Normal guest suites draw across Wing A.' },
+  { id: 'S4', name: 'Wing B riser', subtitle: 'East wing · main branch', pos: [3.1, 4.4, -3.3], flow: 480, lo: 300, hi: 570, cause: 'Normal distribution to Wing B suites.' },
+  { id: 'S5', name: 'Kitchen annex', subtitle: 'Ground annex · food service', pos: [-4.6, 1.7, 6.7], flow: 210, lo: 150, hi: 280, cause: 'Kitchen prep and warewashing nominal.' },
+  { id: 'S6', name: 'Laundry', subtitle: 'Ground annex · wash room', pos: [3.0, 1.7, 7.2], flow: 360, lo: 220, hi: 440, cause: 'Commercial laundry wash cycles nominal.' },
+  { id: 'S7', name: 'Wing B · Floor 2', subtitle: 'Floor 2 · east wing endpoint', pos: [7.5, 7.55, -1.8], flow: 155, lo: 70, hi: 190, cause: 'Floor 2 endpoint flow is within expected band.' }
+];
+
+nodeDefs.forEach(d => {
+  const g = new THREE.Group(); g.position.set(...d.pos); g.userData.nodeId = d.id;
+  box(g, 'H', [0, 0, 0], [0.38, 0.24, 0.3], M.dark).userData.nodeId = d.id;
+  const led = new THREE.Mesh(new THREE.SphereGeometry(0.085, 12, 12), M.green);
+  led.position.set(0, 0.19, 0.13); led.userData.nodeId = d.id; g.add(led);
+  const ring = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.025, 6, 24), new THREE.MeshBasicMaterial({ color: 0x38bdf8, transparent: true, opacity: 0.7 }));
+  ring.rotation.x = Math.PI / 2; ring.position.y = -0.12; g.add(ring);
+  root.add(g);
+  nodes[d.id] = { ...d, group: g, led, ring, state: 'normal', live: d.flow, inherited: false };
+});
+
+function addP(id, a, b, r=0.07) {
+  const mesh = cyl(root, id, a, b, r);
+  segments[id] = { a: new THREE.Vector3(...a), b: new THREE.Vector3(...b), mesh };
+  const p = new THREE.Mesh(new THREE.SphereGeometry(r * 0.75, 8, 8), M.water); root.add(p);
+  particles.push({ mesh: p, seg: segments[id], t: Math.random(), speed: 0.18 });
+}
+addP('inlet_sump', [-3.5, -2.16, -0.3], [-2.05, -2.16, 1.55]);
+addP('sump_pump', [-1.05, -2.18, 1.55], [0.25, -2.18, 1.2]);
+addP('pump_riser', [0.25, -2.18, 1.2], [0.25, 11.05, 1.58], 0.09);
+addP('branch_B', [0.25, 8.7, 1.58], [3.1, 4.4, -3.3]);
+addP('feed_B2', [3.1, 4.4, -3.3], [7.5, 7.55, -1.8]);
+
+// Logic & Controls
+let selected = 'S1', isLeak = false, isOverflow = false, isNight = true, explode = 0, pulseTimer = 0;
+
+function showToast(msg) {
+  const el = document.querySelector('#toast'); el.textContent = msg; el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2200);
+}
+
+function updatePanel() {
+  const n = nodes[selected];
+  document.querySelector('#nodeTitle').textContent = n.id + ' · ' + n.name;
+  document.querySelector('#nodeSubtitle').textContent = n.subtitle;
+  document.querySelector('#flowVal').textContent = Math.round(n.live);
+  const extra = n.state === 'leak' ? Math.max(0, n.live - n.hi) * 24 * 0.150 : 0;
+  document.querySelector('#lossVal').textContent = '₹' + Math.round(extra);
+  document.querySelector('#bandText').textContent = n.lo + '–' + n.hi + ' L/h';
+  const ratio = Math.max(0, Math.min(1, (n.live - n.lo) / (n.hi - n.lo)));
+  document.querySelector('#bandMarker').style.left = (15 + ratio * 65) + '%';
+  document.querySelector('#causeText').textContent = n.cause;
+  document.querySelectorAll('.nodechip').forEach(c => c.classList.toggle('selected', c.dataset.id === selected));
+}
+
+const list = document.querySelector('#nodeList');
+nodeDefs.forEach(d => {
+  const b = document.createElement('button'); b.className = 'nodechip'; b.dataset.id = d.id; b.textContent = d.id;
+  b.onclick = () => { selected = d.id; updatePanel(); }; list.appendChild(b);
+});
+
+function pick(e) {
+  const ray = new THREE.Raycaster();
+  ray.setFromCamera(new THREE.Vector2((e.clientX / window.innerWidth) * 2 - 1, -(e.clientY / window.innerHeight) * 2 + 1), camera);
+  const hits = ray.intersectObjects(root.children, true);
+  for (const h of hits) {
+    let o = h.object; while (o && o !== root && !o.userData.nodeId) o = o.parent;
+    if (o && o.userData.nodeId) { selected = o.userData.nodeId; updatePanel(); showToast(nodes[selected].name); return; }
+  }
+}
+
+document.querySelector('#explodeSlider').oninput = e => {
+  explode = +e.target.value; document.querySelector('#explodeVal').textContent = explode.toFixed(1) + 'm';
+  floors.forEach((g, i) => g.position.y = i * explode);
+  nodes.S3.group.position.y = 4.4 + explode; nodes.S4.group.position.y = 4.4 + explode; nodes.S7.group.position.y = 7.55 + 2 * explode;
+};
+
+document.querySelector('#leakBtn').onclick = () => {
+  isLeak = !isLeak;
+  nodes.S7.state = isLeak ? 'leak' : 'normal';
+  nodes.S7.live = isLeak ? 390 : 155;
+  nodes.S7.cause = isLeak ? 'Active branch pipe burst. Flow exceeds P90.' : nodeDefs[6].cause;
+  nodes.S4.inherited = isLeak; nodes.S1.inherited = isLeak;
+  document.querySelector('#leakBtn').classList.toggle('leak-active', isLeak);
+  updatePanel(); showToast(isLeak ? 'Leak injected at Wing B F2' : 'Leak cleared');
+};
+
+document.querySelector('#resetBtn').onclick = () => {
+  isLeak = false; isOverflow = false;
+  nodeDefs.forEach(d => { Object.assign(nodes[d.id], { state: 'normal', live: d.flow, cause: d.cause, inherited: false }); });
+  document.querySelector('#leakBtn').classList.remove('leak-active');
+  updatePanel(); showToast('Network reset to baseline');
+};
+
+document.querySelector('#dayBtn').onclick = () => {
+  isNight = !isNight;
+  document.body.classList.toggle('light-mode', !isNight);
+  scene.background.set(isNight ? '#0b0f14' : '#edf2f7');
+  scene.fog.color.set(isNight ? '#0b0f14' : '#edf2f7');
+};
+
+document.querySelector('#viewIso').onclick = () => { targetSpherical.theta = 0.75; targetSpherical.phi = 0.95; targetSpherical.radius = 46; targetPos.set(0, 5.1, 0); };
+document.querySelector('#viewPlan').onclick = () => { targetSpherical.theta = 0; targetSpherical.phi = 0.22; targetSpherical.radius = 48; targetPos.set(0, 5.1, 0); };
+document.querySelector('#viewElev').onclick = () => { targetSpherical.theta = 0; targetSpherical.phi = 1.35; targetSpherical.radius = 38; targetPos.set(0, 5.1, 0); };
+document.querySelector('#viewPlant').onclick = () => { targetSpherical.theta = 0.6; targetSpherical.phi = 1.1; targetSpherical.radius = 18; targetPos.set(-2, -2.2, 0.5); };
+
+document.querySelectorAll('[data-floor]').forEach(b => b.onclick = () => {
+  document.querySelectorAll('[data-floor]').forEach(x => x.classList.toggle('active', x === b));
+  const f = b.dataset.floor;
+  targetPos.y = f === '0' ? 1.5 : f === '1' ? 4.5 : f === '2' ? 7.5 : f === 'roof' ? 10.8 : 5.1;
+  targetSpherical.radius = f === 'all' ? 46 : 28;
+});
+
+function animate(now) {
+  requestAnimationFrame(animate);
+  const dt = Math.min(0.05, (now - (animate.last || now)) / 1000); animate.last = now;
+  spherical.theta += (targetSpherical.theta - spherical.theta) * 0.12;
+  spherical.phi += (targetSpherical.phi - spherical.phi) * 0.12;
+  spherical.radius += (targetSpherical.radius - spherical.radius) * 0.12;
+  curLookAt.lerp(targetPos, 0.1);
+  camera.position.setFromSpherical(spherical).add(curLookAt);
+  camera.lookAt(curLookAt);
+
+  particles.forEach(p => {
+    p.t = (p.t + dt * p.speed * (isLeak ? 2.5 : 1)) % 1;
+    p.mesh.position.lerpVectors(p.seg.a, p.seg.b, p.t);
+  });
+
+  Object.values(nodes).forEach(n => {
+    const isRed = n.state === 'leak' || n.inherited;
+    n.led.material = isRed ? M.red : M.green;
+    n.ring.material.color.set(isRed ? 0xef4444 : 0x38bdf8);
+  });
+
+  renderer.render(scene, camera);
+}
+updatePanel(); animate(performance.now());
+})();
+</script>
+</body>
+</html>
