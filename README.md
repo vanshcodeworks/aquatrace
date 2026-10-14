@@ -88,6 +88,47 @@ modes change the lighting.
 
 ---
 
+## Demo script (5 minutes, for judges)
+
+A ready-to-present walkthrough. The goal is to follow one hidden **pipe leak in
+Wing A** from a raw meter reading to a dispatched incident, and to see it on the
+3D twin.
+
+> Before you start: launch the app, open the dashboard, and check the header
+> shows it is connected.
+
+1. **Executive Cockpit.** The whole property on one screen: water balance, tank
+   reserve, tanker autonomy, savings and active incidents (all calm right now).
+2. **Spatial Twin → 3D building.** Click a sensor pin to show Actual vs Expected.
+   Point out the mapping: **S1** Municipal Intake, **S3** Wing A, **S4** Wing B,
+> S7 Floor 2 Suite 206. Try the day/night toggle.
+2. **Simulation Lab**. Set **Fault type = Pipe leak**, **Node = Wing A**,
+   **Intensity = 60 L/h**, **Onset = Sudden**, **Duration = 300 min**, then click
+   **Inject fault**.
+3. Set **Speed to 60x** and press **Run**. The engine adds 60 L/h of extra flow
+   into Wing A, exactly like a real leaking pipe. The detector does not see the
+   injection; it only sees the meter readings.
+4. Back to **Spatial Twin** (3D). Within a few simulated intervals the Wing A pin
+   (S3) turns red, an alert badge appears, and the upstream intake (S1) lifts.
+   The abnormal-node count and excess L/h rise.
+5. Click the **Wing A** pin. Actual is now above Expected, and the inspector
+   shows the excess flow and the evidence note.
+6. Open **Incidents & Dispatch**. One incident was raised at Wing A with a
+   diagnosis, confidence, excess litres and cost, and a timeline. Walk through
+   the lifecycle actions (Acknowledge -> In progress -> Resolve) and isolate the
+   branch.
+7. Prove it is honest: go to **Simulation Lab -> Simulate remediation** (or
+   remove the fault) and watch the nodes return to healthy. Optional: open
+   **Settings -> Benchmarks** to see measured detection metrics against simple
+   baselines.
+
+Heads-up: the quick **Test Room 206 Leak** button in the 3D twin injects a preset
+leak in Wing B (Room 206). For the Wing A story, inject from the Simulation Lab
+as above. Detection needs about three abnormal readings in a row (persistence),
+and 60 L/h sits well above the 8 L/h noise floor, so give it a few intervals.
+
+---
+
 ## Tech stack
 
 - **Backend:** FastAPI, Uvicorn, SQLAlchemy 2, SQLite (WAL), Pydantic v2, pandas,
