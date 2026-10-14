@@ -13,9 +13,6 @@ export function Sidebar() {
         <div>
           <div className="flex items-center gap-1.5">
             <span className="text-sm font-bold tracking-tight text-slate-900">AquaTrace</span>
-            <span className="rounded-full bg-blue-50 px-1.5 py-0.5 text-[10px] font-semibold text-blue-700">
-              v1.2
-            </span>
           </div>
           <p className="text-[11px] font-medium text-slate-400">Hillside Resort Twin</p>
         </div>
